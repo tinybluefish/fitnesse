@@ -6,7 +6,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
-import fitnesse.components.SocketDealer;
+import fitnesse.socketservice.SocketFactory;
+
 import fitnesse.http.Request;
 
 public class FitSocketReceiver {
@@ -23,7 +24,7 @@ public class FitSocketReceiver {
   }
 
   public int receiveSocket() throws Exception {
-    serverSocket = new ServerSocket(port);
+    serverSocket = SocketFactory.tryCreateServerSocket(port);
     port = serverSocket.getLocalPort();
     new Thread() {
       public void run() {

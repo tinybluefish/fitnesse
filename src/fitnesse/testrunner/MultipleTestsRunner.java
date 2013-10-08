@@ -3,7 +3,7 @@
 package fitnesse.testrunner;
 
 import fitnesse.FitNesseContext;
-import fitnesse.components.ClassPathBuilder;
+import fitnesse.wiki.ClassPathBuilder;
 import fitnesse.testsystems.*;
 import fitnesse.wiki.WikiPage;
 
@@ -97,8 +97,8 @@ public class MultipleTestsRunner implements TestSystemListener<WikiTestPage>, St
 
   private void executeTestSystemPages(List<WikiTestPage> pagesInTestSystem, TestSystem testSystem) throws IOException, InterruptedException {
     for (TestPage testPage : pagesInTestSystem) {
-      testSystem.runTests(testPage);
       testsInProgressCount++;
+      testSystem.runTests(testPage);
     }
   }
 
