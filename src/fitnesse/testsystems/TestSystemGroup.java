@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import fitnesse.FitNesseContext;
-import fitnesse.slim.SlimCommandRunningClient;
+import fitnesse.testsystems.slim.SlimCommandRunningClient;
 import fitnesse.testsystems.fit.FitTestSystem;
 import fitnesse.testsystems.fit.InProcessFitTestSystem;
 import fitnesse.testsystems.slim.HtmlSlimTestSystem;
@@ -47,15 +47,10 @@ public class TestSystemGroup {
   }
 
   private TestSystem makeTestSystem(Descriptor descriptor) throws IOException {
-    if ("slim".equalsIgnoreCase(getTestSystemType(descriptor.getTestSystemName())))
+    if ("slim".equalsIgnoreCase(descriptor.getTestSystemType()))
       return fastTest ? createInProcessHtmlSlimTestSystem(descriptor) : createHtmlSlimTestSystem(descriptor);
     else
       return fastTest ? createInProcessFitTestSystem(descriptor) : createFitTestSystem(descriptor);
-  }
-
-  private String getTestSystemType(String testSystemName) {
-    String parts[] = testSystemName.split(":");
-    return parts[0];
   }
 
   private HtmlSlimTestSystem createHtmlSlimTestSystem(Descriptor descriptor) throws IOException {

@@ -2,23 +2,22 @@
 // Released under the terms of the CPL Common Public License version 1.0.
 package fitnesse;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static util.RegexTestCase.assertSubString;
-
+import java.io.File;
 import java.util.List;
 import java.util.Properties;
 
 import fitnesse.authentication.Authenticator;
+import fitnesse.authentication.MultiUserAuthenticator;
+import fitnesse.authentication.OneUserAuthenticator;
 import fitnesse.authentication.PromiscuousAuthenticator;
+import fitnesse.components.ComponentFactory;
 import fitnesse.responders.ResponderFactory;
 import fitnesse.responders.WikiPageResponder;
 import fitnesse.responders.editing.ContentFilter;
 import fitnesse.responders.editing.EditResponder;
 import fitnesse.responders.editing.SaveResponder;
-import fitnesse.testsystems.Assertion;
+import fitnesse.testsystems.slim.CustomComparator;
+import fitnesse.testsystems.slim.CustomComparatorRegistry;
 import fitnesse.testsystems.slim.HtmlTable;
 import fitnesse.testsystems.slim.SlimTestContext;
 import fitnesse.testsystems.slim.SlimTestContextImpl;
@@ -35,6 +34,7 @@ import fitnesse.wikitext.parser.SymbolProvider;
 import fitnesse.wikitext.parser.SymbolStream;
 import fitnesse.wikitext.parser.SymbolType;
 import fitnesse.wikitext.parser.Today;
+import fitnesseMain.FitNesseMain;
 import org.htmlparser.nodes.TextNode;
 import org.htmlparser.tags.TableColumn;
 import org.htmlparser.tags.TableRow;
@@ -43,16 +43,20 @@ import org.htmlparser.util.NodeList;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ComponentFactoryTest {
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static util.RegexTestCase.assertSubString;
+
+public class PluginsLoaderTest {
   private Properties testProperties;
-  private ComponentFactory factory;
+  private PluginsLoader loader;
   private SymbolProvider testProvider;
 
   @Before
   public void setUp() throws Exception {
     testProperties = new Properties();
     testProvider = new SymbolProvider(new SymbolType[] {});
-    factory = new ComponentFactory(testProperties);
+    loader = new PluginsLoader(new ComponentFactory(testProperties));
   }
 
   @Test
@@ -64,7 +68,7 @@ public class ComponentFactoryTest {
 
     assertMatch("!today", false);
 
-    String output = factory.loadPlugins(responderFactory, testProvider);
+    String output = loader.loadPlugins(responderFactory, testProvider);
 
     assertSubString(DummyPlugin.class.getName(), output);
 
@@ -84,7 +88,7 @@ public class ComponentFactoryTest {
     testProperties.setProperty(ComponentFactory.RESPONDERS, respondersValue);
 
     ResponderFactory responderFactory = new ResponderFactory(".");
-    String output = factory.loadResponders(responderFactory);
+    String output = loader.loadResponders(responderFactory);
 
     assertSubString("custom1:" + WikiPageResponder.class.getName(), output);
     assertSubString("custom2:" + EditResponder.class.getName(), output);
@@ -98,7 +102,7 @@ public class ComponentFactoryTest {
     String symbolValues = Today.class.getName();
     testProperties.setProperty(ComponentFactory.SYMBOL_TYPES, symbolValues);
 
-    String output = factory.loadSymbolTypes(testProvider);
+    String output = loader.loadSymbolTypes(testProvider);
 
     assertSubString(Today.class.getName(), output);
 
@@ -107,7 +111,7 @@ public class ComponentFactoryTest {
 
   @Test
   public void testAuthenticatorDefaultCreation() throws Exception {
-    Authenticator authenticator = factory.getAuthenticator(new PromiscuousAuthenticator());
+    Authenticator authenticator = loader.getAuthenticator(new PromiscuousAuthenticator());
     assertNotNull(authenticator);
     assertEquals(PromiscuousAuthenticator.class, authenticator.getClass());
   }
@@ -116,19 +120,45 @@ public class ComponentFactoryTest {
   public void testAuthenticatorCustomCreation() throws Exception {
     testProperties.setProperty(ComponentFactory.AUTHENTICATOR, SimpleAuthenticator.class.getName());
 
-    Authenticator authenticator = factory.getAuthenticator(new PromiscuousAuthenticator());
+    Authenticator authenticator = loader.getAuthenticator(new PromiscuousAuthenticator());
     assertNotNull(authenticator);
     assertEquals(SimpleAuthenticator.class, authenticator.getClass());
   }
 
   @Test
+  public void testMakeNullAuthenticator() throws Exception {
+    Authenticator a = loader.makeAuthenticator(null);
+    assertTrue(a instanceof PromiscuousAuthenticator);
+  }
+
+  @Test
+  public void testMakeOneUserAuthenticator() throws Exception {
+    Authenticator a = loader.makeAuthenticator("bob:uncle");
+    assertTrue(a instanceof OneUserAuthenticator);
+    OneUserAuthenticator oua = (OneUserAuthenticator) a;
+    assertEquals("bob", oua.getUser());
+    assertEquals("uncle", oua.getPassword());
+  }
+
+  @Test
+  public void testMakeMultiUserAuthenticator() throws Exception {
+    final String passwordFilename = "testpasswd";
+    File passwd = new File(passwordFilename);
+    passwd.createNewFile();
+    Authenticator a = loader.makeAuthenticator(passwordFilename);
+    assertTrue(a instanceof MultiUserAuthenticator);
+    passwd.delete();
+  }
+
+
+  @Test
   public void testContentFilterCreation() throws Exception {
-    assertEquals("", factory.loadContentFilter());
+    assertEquals("", loader.loadContentFilter());
     assertEquals(null, SaveResponder.contentFilter);
 
     testProperties.setProperty(ComponentFactory.CONTENT_FILTER, TestContentFilter.class.getName());
 
-    String content = factory.loadContentFilter();
+    String content = loader.loadContentFilter();
     assertEquals("\tContent filter installed: " + SaveResponder.contentFilter.getClass().getName() + "\n", content);
     assertNotNull(SaveResponder.contentFilter);
     assertEquals(TestContentFilter.class, SaveResponder.contentFilter.getClass());
@@ -137,7 +167,7 @@ public class ComponentFactoryTest {
   @Test
   public void testSlimTablesCreation() throws ClassNotFoundException {
     testProperties.setProperty(ComponentFactory.SLIM_TABLES, "test:" + TestSlimTable.class.getName());
-    String content = factory.loadSlimTables();
+    String content = loader.loadSlimTables();
 
     assertTrue(content.contains("test:"));
     assertTrue(content.contains("TestSlimTable"));
@@ -150,7 +180,7 @@ public class ComponentFactoryTest {
   @Test
   public void testSlimTablesWithColonCreation() throws ClassNotFoundException {
     testProperties.setProperty(ComponentFactory.SLIM_TABLES, "test::" + TestSlimTable.class.getName());
-    String content = factory.loadSlimTables();
+    String content = loader.loadSlimTables();
 
     assertTrue(content.contains("test:"));
     assertTrue(content.contains("TestSlimTable"));
@@ -158,6 +188,18 @@ public class ComponentFactoryTest {
     HtmlTable table = makeMockTable("test:");
     SlimTable slimTable = new SlimTableFactory().makeSlimTable(table, "foo", new SlimTestContextImpl());
     assertSame(TestSlimTable.class, slimTable.getClass());
+  }
+
+  public void testCustomComparatorsCreation() throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    testProperties.setProperty(ComponentFactory.CUSTOM_COMPARATORS, "test:" + TestCustomComparator.class.getName());
+    String content = loader.loadCustomComparators();
+
+    assertTrue(content.contains("test:"));
+    assertTrue(content.contains("TestCustomComparator"));
+
+    CustomComparator customComparator = CustomComparatorRegistry.getCustomComparatorForPrefix("test");
+    assertNotNull(customComparator);
+    assertTrue(customComparator instanceof TestCustomComparator);
   }
 
   private HtmlTable makeMockTable(String tableIdentifier) {
@@ -207,6 +249,13 @@ public class ComponentFactoryTest {
     @Override
     public List<SlimAssertion> getAssertions() {
       return null;
+    }
+  }
+  
+  public static class TestCustomComparator implements CustomComparator {
+    @Override
+    public boolean matches(String actual, String expected) {
+      return false;
     }
   }
 }
