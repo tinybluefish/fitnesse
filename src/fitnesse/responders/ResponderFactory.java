@@ -109,10 +109,11 @@ public class ResponderFactory {
   }
 
   public String getResponderKey(Request request) {
-    String fullQuery;
+    String fullQuery = null;
     if (request.hasInput("responder"))
       fullQuery = (String) request.getInput("responder");
-    else
+    // NOTE: Adding the files restriction so we can use CKEditor...
+    else if (!request.getResource().startsWith("files/"))
       fullQuery = request.getQueryString();
 
     if (fullQuery == null)
