@@ -21,10 +21,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import static util.ListUtility.list;
 
 public class SlimCommandRunningClient implements SlimClient {
+  private static final Logger LOG = Logger.getLogger(SlimCommandRunningClient.class.getName());
+
   public static final int NO_SLIM_SERVER_CONNECTION_FLAG = -32000;
   public static double MINIMUM_REQUIRED_SLIM_VERSION = 0.3;
 
@@ -47,26 +50,8 @@ public class SlimCommandRunningClient implements SlimClient {
   @Override
   public void start() throws IOException {
     slimRunner.asynchronousStart();
-    waitUntilStarted();
+    connect();
     checkForVersionMismatch();
-  }
-
-  void waitUntilStarted() {
-    while (!isStarted())
-      try {
-        Thread.sleep(50);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-  }
-
-  private boolean isStarted() {
-    try {
-      connect();
-      return true;
-    } catch (Exception e) {
-      return false;
-    }
   }
 
   private void checkForVersionMismatch() {
@@ -83,22 +68,17 @@ public class SlimCommandRunningClient implements SlimClient {
   public void kill() throws IOException {
     if (slimRunner != null)
       slimRunner.kill();
-    reader.close();
-    writer.close();
-    client.close();
+    if (reader != null)
+      reader.close();
+    if (writer != null)
+      writer.close();
+    if (client != null)
+      client.close();
   }
 
   @Override
   public void connect() throws IOException {
-    for (int tries = 0; tryConnect() == false; tries++) {
-      if (tries > 100)
-        throw new SlimError("Could not build Slim.");
-      try {
-        Thread.sleep(50);
-      } catch (InterruptedException e) {
-        throw new SlimError("Wait for connection interrupted.");
-      }
-    }
+    client = tryConnect(200);
     reader = new StreamReader(client.getInputStream());
     writer = new BufferedWriter(new OutputStreamWriter(client.getOutputStream(), "UTF-8"));
     slimServerVersionMessage = reader.readLine();
@@ -111,16 +91,24 @@ public class SlimCommandRunningClient implements SlimClient {
     }
     else {
       slimServerVersion =  NO_SLIM_SERVER_CONNECTION_FLAG;
-      System.out.println("Error reading Slim Version. Read the following: " + slimServerVersionMessage);
+      LOG.warning("Error reading Slim Version. Read the following: " + slimServerVersionMessage);
     }
   }
 
-  private boolean tryConnect() {
+  private Socket tryConnect(int maxTries) throws IOException {
     try {
-      client = new Socket(hostName, port);
-      return true;
+      return new Socket(hostName, port);
     } catch (IOException e) {
-      return false;
+      if (maxTries <= 1) {
+        throw new SlimError("Error connecting to SLiM server on " + hostName + ":" + port, e);
+      } else {
+        try {
+          Thread.sleep(50);
+        } catch (InterruptedException i) {
+          throw new SlimError("Wait for connection interrupted.");
+        }
+        return tryConnect(maxTries - 1);
+      }
     }
   }
 
@@ -206,7 +194,7 @@ public class SlimCommandRunningClient implements SlimClient {
     	length = Integer.parseInt(resultLength);
     }
     catch (NumberFormatException e){
-    	throw new RuntimeException("Steam Read Failure. Can't read length of message from the server.  Possibly test aborted.  Last thing read: " + resultLength);
+    	throw new IOException("Steam Read Failure. Can't read length of message from the server.  Possibly test aborted.  Last thing read: " + resultLength);
     }
 	return length;
   }
@@ -224,7 +212,7 @@ public class SlimCommandRunningClient implements SlimClient {
     kill();
   }
 
-  public static Map<String, Object> resultToMap(List<? extends Object> slimResults) {
+  public static Map<String, Object> resultToMap(List<?> slimResults) {
     Map<String, Object> map = new HashMap<String, Object>();
     for (Object aResult : slimResults) {
       List<Object> resultList = ListUtility.uncheckedCast(Object.class, aResult);

@@ -6,6 +6,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import util.StringUtil;
 import fitnesse.Responder;
@@ -30,7 +32,6 @@ import fitnesse.responders.run.SocketCatchingResponder;
 import fitnesse.responders.run.StopTestResponder;
 import fitnesse.responders.run.SuiteResponder;
 import fitnesse.responders.run.TestResponder;
-import fitnesse.responders.run.TestResultFormattingResponder;
 import fitnesse.responders.search.*;
 import fitnesse.responders.testHistory.HistoryComparerResponder;
 import fitnesse.responders.testHistory.PageHistoryResponder;
@@ -44,6 +45,8 @@ import fitnesse.responders.versions.VersionSelectionResponder;
 import fitnesse.wikitext.parser.WikiWordPath;
 
 public class ResponderFactory {
+  private final static Logger LOG = Logger.getLogger(ResponderFactory.class.getName());
+
   private final String rootPath;
   private final Map<String, Class<?>> responderMap;
 
@@ -85,7 +88,6 @@ public class ResponderFactory {
     addResponder("import", WikiImportingResponder.class);
     addResponder("files", FileResponder.class);
     addResponder("shutdown", ShutdownResponder.class);
-    addResponder("format", TestResultFormattingResponder.class);
     addResponder("symlink", SymbolicLinkResponder.class);
     addResponder("importAndView", ImportAndViewResponder.class);
     addResponder("getPage", WikiPageResponder.class);
@@ -100,11 +102,7 @@ public class ResponderFactory {
     addResponder("compareVersions", VersionComparerResponder.class);
   }
 
-  public void addResponder(String key, String responderClassName) throws ClassNotFoundException {
-    responderMap.put(key, Class.forName(responderClassName));
-  }
-
-  public void addResponder(String key, Class<?> responderClass) {
+  public final void addResponder(String key, Class<?> responderClass) {
     responderMap.put(key, responderClass);
   }
 
@@ -150,7 +148,7 @@ public class ResponderFactory {
       try {
         return newResponderInstance(responderClass);
       } catch (Exception e) {
-        e.printStackTrace();
+        LOG.log(Level.WARNING, "Unable to instantiate responder " + responderKey, e);
         throw new InstantiationException("Unable to instantiate responder " + responderKey);
       }
     }

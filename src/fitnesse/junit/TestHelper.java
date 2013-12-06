@@ -1,6 +1,6 @@
 package fitnesse.junit;
 
-import fitnesse.Arguments;
+import fitnesseMain.Arguments;
 import fitnesse.reporting.JavaFormatter;
 import fitnesse.testsystems.TestSummary;
 import fitnesse.testsystems.TestSystemListener;
@@ -44,15 +44,12 @@ public class TestHelper {
     JavaFormatter testFormatter=JavaFormatter.getInstance(pageName);
     testFormatter.setResultsRepository(new JavaFormatter.FolderResultsRepository(outputPath));
     testFormatter.setListener(resultListener);
-    Arguments arguments=new Arguments();
-    arguments.setDaysTillVersionsExpire("0");
-    arguments.setInstallOnly(false);
-    arguments.setOmitUpdates(true);
-    arguments.setPort(String.valueOf(port));
-    arguments.setRootPath(fitNesseRootPath);
-    arguments.setCommand(getCommand(pageName, pageType, suiteFilter, excludeSuiteFilter));
-    FitNesseMain.dontExitAfterSingleCommand=true;
-    FitNesseMain.launchFitNesse(arguments);   
+    Arguments arguments=new Arguments("-e", "0",
+            "-o",
+            "-p", String.valueOf(port),
+            "-d", fitNesseRootPath,
+            "-c", getCommand(pageName, pageType, suiteFilter, excludeSuiteFilter));
+    new FitNesseMain().launchFitNesse(arguments);
     return testFormatter.getTotalSummary();
   }
   public  TestSummary run(String pageName, String pageType, String suiteFilter) throws Exception{

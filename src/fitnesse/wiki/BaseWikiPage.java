@@ -3,6 +3,7 @@
 package fitnesse.wiki;
 
 import fitnesse.wiki.fs.SymbolicPageFactory;
+import fitnesse.wikitext.parser.VariableSource;
 
 import java.util.List;
 
@@ -10,13 +11,22 @@ public abstract class BaseWikiPage implements WikiPage {
   private static final long serialVersionUID = 1L;
 
   protected final String name;
-  protected WikiPage parent;
-  private final SymbolicPageFactory symbolicPageFactory;
+  private VariableSource variableSource;
+  protected final BaseWikiPage parent;
+  protected final SymbolicPageFactory symbolicPageFactory;
 
-  protected BaseWikiPage(String name, WikiPage parent, SymbolicPageFactory symbolicPageFactory) {
+  protected BaseWikiPage(String name, SymbolicPageFactory symbolicPageFactory, VariableSource variableSource) {
+    this.name = name;
+    this.parent = null;
+    this.symbolicPageFactory = symbolicPageFactory;
+    this.variableSource = variableSource;
+  }
+
+  protected BaseWikiPage(String name, BaseWikiPage parent) {
     this.name = name;
     this.parent = parent;
-    this.symbolicPageFactory = symbolicPageFactory;
+    this.symbolicPageFactory = parent.symbolicPageFactory;
+    this.variableSource = parent.variableSource;
   }
 
   public String getName() {
@@ -53,6 +63,10 @@ public abstract class BaseWikiPage implements WikiPage {
     return children;
   }
 
+  protected VariableSource getVariableSource() {
+    return variableSource;
+  }
+
   private WikiPage createSymbolicPage(WikiPageProperty symLinkProperty, String linkName) {
     if (symLinkProperty == null)
       return null;
@@ -73,11 +87,11 @@ public abstract class BaseWikiPage implements WikiPage {
   }
 
   public WikiPage getHeaderPage() {
-    return getPageCrawler().getClosestInheritedPage(this, "PageHeader");
+    return getPageCrawler().getClosestInheritedPage("PageHeader");
   }
 
   public WikiPage getFooterPage() {
-    return getPageCrawler().getClosestInheritedPage(this, "PageFooter");
+    return getPageCrawler().getClosestInheritedPage("PageFooter");
   }
 
   public String toString() {

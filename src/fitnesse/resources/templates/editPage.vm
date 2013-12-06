@@ -14,9 +14,12 @@
 #if($!isNewPage)
  <input type="hidden" name="responder" value="addChild"/>
  <fieldset>
-  <label for="pagename">Page name:</label><input type="text" id="pagename" name="pageName" value="" class="wikiword" />
+  <label for="pagename">Page name:</label>
+  <input type="text" id="pagename" name="pageName" value="" class="wikiword" />
  </fieldset>
- #if( $!pageType )
+ #if($!pageTemplate)
+ <input type="hidden" name="pageTemplate" value="$pageTemplate"/>
+ #elseif( $!pageType )
  <input type="hidden" name="pageType" value="$pageType"/>
  #else
  <fieldset id="pagetypes">
@@ -30,17 +33,19 @@
  <input type="hidden" name="responder" value="saveData"/>
 #end
  <fieldset>
-  <label for="helptext">Help text:</label><input type="text" id="helptext" name="helpText" value="$!helpText" />
+  <label for="helptext">Help text:</label>
+  <input type="text" id="helptext" name="helpText" value="$!helpText" />
  </fieldset>
  <fieldset>
-  <label for="suites">Tags:</label><input type="text" id="suites" title="Separate tags by a comma" name="suites" value="$!suites" />
+  <label for="suites">Tags:</label>
+  <input type="text" id="suites" title="Separate tags by a comma" name="suites" value="$!suites" />
  </fieldset>
 
  <div id="backingData" class="hidden">
   <select id="templateMap">
    <option value=""></option>
    #foreach ($templateEntry in $templateMap.entrySet())
-   <option value="$templateEntry.key">$templateEntry.value</option>
+   <option value="$templateEntry.value">$templateEntry.key</option>
    #end
   </select>
 
@@ -78,7 +83,7 @@ window.onload = function() {
  </fieldset>
 
  <fieldset id="save_buttons">
-  <input type="submit" name="save" value="Save" tabindex="2" accesskey="s"/>
+  <input type="submit" name="save" value="Save" accesskey="s"/>
   <a class="button" href="#if($!redirect)$redirect#else$resource#end">Cancel</a>
  </fieldset>
 </form>

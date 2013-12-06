@@ -23,8 +23,8 @@ public class HtmlSlimTestSystem extends SlimTestSystem {
   private HtmlTableScanner tableScanner;
   private SlimTableFactory slimTableFactory = new SlimTableFactory();
 
-  public HtmlSlimTestSystem(String testSystemName, SlimClient slimClient, TestSystemListener listener) {
-    super(testSystemName, slimClient, listener);
+  public HtmlSlimTestSystem(String testSystemName, SlimClient slimClient) {
+    super(testSystemName, slimClient);
   }
 
   @Override
@@ -55,9 +55,7 @@ public class HtmlSlimTestSystem extends SlimTestSystem {
   }
 
   private NodeList makeNodeList(ReadOnlyPageData pageData) {
-    String html;
-    ParsedPage parsedPage = pageData.getParsedPage();
-    html = parsedPage.toHtml();
+    String html = pageData.getHtml();
     Parser parser = new Parser(new Lexer(new Page(html)));
     try {
       return parser.parse(null);

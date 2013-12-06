@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import fitnesse.wikitext.Utils;
 import org.w3c.dom.Document;
@@ -23,6 +24,8 @@ import util.Clock;
 import util.XmlUtil;
 
 public class WikiPageProperties extends WikiPageProperty implements Serializable {
+  private static final Logger LOG = Logger.getLogger(WikiPageProperties.class.getName());
+
   private static final long serialVersionUID = 1L;
 
   public WikiPageProperties() {
@@ -60,6 +63,18 @@ public class WikiPageProperties extends WikiPageProperty implements Serializable
       document = XmlUtil.newDocument(xml);
     } catch (Exception e) {
       throw new RuntimeException("Unable to parse XML from string " + xml, e);
+    }
+    Element root = document.getDocumentElement();
+    loadFromRootElement(root);
+  }
+
+
+  public void loadFromXml(InputStream xml) {
+    Document document;
+    try {
+      document = XmlUtil.newDocument(xml);
+    } catch (Exception e) {
+      throw new RuntimeException("Unable to parse XML from input stream " + xml, e);
     }
     Element root = document.getDocumentElement();
     loadFromRootElement(root);
@@ -126,7 +141,7 @@ public class WikiPageProperties extends WikiPageProperty implements Serializable
         String childKey = (String) iterator.next();
         WikiPageProperty child = context.getProperty(childKey);
         if (child == null) {
-          System.err.println("Property key \"" + childKey + "\" has null value for {" + context + "}");
+          LOG.warning("Property key \"" + childKey + "\" has null value for {" + context + "}");
         } else {
           toXml(child, childKey, document, element);
         }

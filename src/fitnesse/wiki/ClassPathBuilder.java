@@ -9,11 +9,16 @@ import java.util.List;
 import java.util.Set;
 
 import fitnesse.components.TraversalListener;
+import fitnesse.wikitext.parser.HtmlTranslator;
+import fitnesse.wikitext.parser.ParsingPage;
+import fitnesse.wikitext.parser.Paths;
+import fitnesse.wikitext.parser.Symbol;
+import fitnesse.wikitext.parser.WikiSourcePage;
 import util.Wildcard;
 
 public class ClassPathBuilder {
   private List<String> allPaths;
-  private StringBuffer pathsString;
+  private StringBuilder pathsString;
   private Set<String> addedPaths;
 
   public String getClasspath(WikiPage page) {
@@ -34,7 +39,6 @@ public class ClassPathBuilder {
   }
 
   public String buildClassPath(List<WikiPage> testPages) {
-    final ClassPathBuilder classPathBuilder = new ClassPathBuilder();
     final String pathSeparator = getPathSeparator(testPages.get(0));
     List<String> classPathElements = new ArrayList<String>();
 
@@ -42,18 +46,18 @@ public class ClassPathBuilder {
       addClassPathElements(testPage, classPathElements);
     }
 
-    return classPathBuilder.createClassPathString(classPathElements, pathSeparator);
+    return createClassPathString(classPathElements, pathSeparator);
   }
 
   private void addClassPathElements(WikiPage page, List<String> classPathElements) {
-    List<String> pathElements = new ClassPathBuilder().getInheritedPathElements(page);
+    List<String> pathElements = getInheritedPathElements(page);
     classPathElements.addAll(pathElements);
   }
 
   public String getPathSeparator(WikiPage page) {
     String separator = page.getData().getVariable(PageData.PATH_SEPARATOR);
     if (separator == null)
-      separator = (String) System.getProperties().get("path.separator");
+      separator = System.getProperty("path.separator");
     return separator;
   }
 
@@ -62,7 +66,7 @@ public class ClassPathBuilder {
     if (paths.isEmpty())
       return "defaultPath";
 
-    pathsString = new StringBuffer();
+    pathsString = new StringBuilder();
     paths = expandWildcards(paths);
     addedPaths = new HashSet<String>();
 
@@ -77,7 +81,8 @@ public class ClassPathBuilder {
 
     if (!addedPaths.contains(path)) {
       addedPaths.add(path);
-      addSeparatorIfNecessary(pathsString, separator);
+      if (pathsString.length() > 0)
+        pathsString.append(separator);
       pathsString.append(path);
     }
   }
@@ -149,17 +154,17 @@ public class ClassPathBuilder {
     }
   }
 
-  private void addSeparatorIfNecessary(StringBuffer pathsString, String separator) {
-    if (pathsString.length() > 0)
-      pathsString.append(separator);
-  }
-
   private void addItemsFromPage(WikiPage itemPage, List<String> items) {
     List<String> itemsOnThisPage = getItemsFromPage(itemPage);
     items.addAll(itemsOnThisPage);
   }
 
   protected List<String> getItemsFromPage(WikiPage page) {
-    return page.readOnlyData().getClasspaths();
+    PageData data = page.getData();
+    Symbol tree = data.getParsedPage().getSyntaxTree();
+    ParsingPage parsingPage = data.getParsedPage().getParsingPage();
+    return new Paths(new HtmlTranslator(new WikiSourcePage(page), parsingPage)).getPaths(tree);
   }
+
+
 }

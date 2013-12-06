@@ -7,11 +7,13 @@ FitNesseRoot/JunkPage/*
 FitNesseRoot/ProjectPage/*
 FitNesseRoot/ErrorLogs/*
 FitNesseRoot/files/testResults/*
+FitNesseRoot/files/testProgress/*
 test-results/*
 jsunit/*
 agitar/*
 dist/*
 classes/*
+test-classes/*
 antlib/*
 javadoc/*
 lib/*

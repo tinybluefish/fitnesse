@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import fitnesse.slim.SlimError;
 import fitnesse.slim.SlimServer;
@@ -30,6 +32,8 @@ import fitnesse.testsystems.slim.tables.SyntaxError;
 import static fitnesse.slim.SlimServer.*;
 
 public abstract class SlimTestSystem implements TestSystem {
+  private static final Logger LOG = Logger.getLogger(SlimTestSystem.class.getName());
+
   public static final SlimTable START_OF_TEST = null;
   public static final SlimTable END_OF_TEST = null;
 
@@ -39,13 +43,13 @@ public abstract class SlimTestSystem implements TestSystem {
 
   private SlimTestContextImpl testContext;
   private boolean stopTestCalled;
+  private boolean testSystemIsStopped;
 
 
-  public SlimTestSystem(String testSystemName, SlimClient slimClient, TestSystemListener listener) {
+  public SlimTestSystem(String testSystemName, SlimClient slimClient) {
     this.testSystemName = testSystemName;
     this.slimClient = slimClient;
     this.testSystemListener = new CompositeTestSystemListener();
-    this.testSystemListener.addTestSystemListener(listener);
   }
 
   public SlimTestContext getTestContext() {
@@ -74,15 +78,19 @@ public abstract class SlimTestSystem implements TestSystem {
 
   @Override
   public void kill() throws IOException {
-    if (slimClient != null)
-      slimClient.kill();
-    testSystemListener.testSystemStopped(this, slimClient.getExecutionLog(), null);
+    // No need to send events here, since killing the process is typically done asynchronously.
+    slimClient.kill();
   }
 
   @Override
   public void bye() throws IOException {
-    slimClient.bye();
-    testSystemListener.testSystemStopped(this, slimClient.getExecutionLog(), null);
+    try {
+      slimClient.bye();
+      testSystemStopped(null);
+    } catch (IOException e) {
+      exceptionOccurred(e);
+      throw e;
+    }
   }
 
   @Override
@@ -109,7 +117,14 @@ public abstract class SlimTestSystem implements TestSystem {
     List<SlimAssertion> assertions = createAssertions(table);
     Map<String, Object> instructionResults;
     if (!stopTestCalled) {
-      instructionResults = slimClient.invokeAndGetResponse(SlimAssertion.getInstructions(assertions));
+      // Okay, if this crashes, the test system is killed.
+      // We're not gonna continue here, but instead declare our test system done.
+      try {
+        instructionResults = slimClient.invokeAndGetResponse(SlimAssertion.getInstructions(assertions));
+      } catch (IOException e) {
+        exceptionOccurred(e);
+        throw e;
+      }
     } else {
       instructionResults = Collections.emptyMap();
     }
@@ -152,7 +167,6 @@ public abstract class SlimTestSystem implements TestSystem {
   public static String exceptionToString(Throwable e) {
     StringWriter stringWriter = new StringWriter();
     PrintWriter pw = new PrintWriter(stringWriter);
-    e.printStackTrace(pw);
     return SlimServer.EXCEPTION_TAG + stringWriter.toString();
   }
 
@@ -201,11 +215,9 @@ public abstract class SlimTestSystem implements TestSystem {
     try {
       slimClient.kill();
     } catch (IOException e1) {
-      e1.printStackTrace();
+      LOG.log(Level.WARNING, "Failed to kill SLiM client", e);
     }
-    ExecutionLog log = slimClient.getExecutionLog();
-    log.addException(e);
-    testSystemListener.testSystemStopped(this, log, e);
+    testSystemStopped(e);
   }
 
   protected void testAssertionVerified(Assertion assertion, TestResult testResult) {
@@ -216,4 +228,15 @@ public abstract class SlimTestSystem implements TestSystem {
     testSystemListener.testExceptionOccurred(assertion, exceptionResult);
   }
 
+  // Ensure testSystemStopped is called only once per test system. First call counts.
+  protected void testSystemStopped(Throwable e) {
+    if (testSystemIsStopped) return;
+
+    testSystemIsStopped = true;
+    ExecutionLog log = slimClient.getExecutionLog();
+    if (e != null) {
+      log.addException(e);
+    }
+    testSystemListener.testSystemStopped(this, log, e);
+  }
 }
