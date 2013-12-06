@@ -7,7 +7,7 @@ import java.util.List;
 
 public class WikiPageUtil {
 
-  public static void setPageContents(WikiPage page, String pageContents) throws Exception {
+  public static void setPageContents(WikiPage page, String pageContents) {
     PageData pageData = page.getData();
     pageData.setContent(pageContents);
     page.commit(pageData);
@@ -26,8 +26,7 @@ public class WikiPageUtil {
   public static WikiPage addPage(WikiPage context, WikiPagePath path, String content) {
     WikiPage page = addPage(context, path);
     if (page != null) {
-      PageData data = new PageData(page);
-      data.setContent(content);
+      PageData data = new PageData(page.getData(), content);
       page.commit(data);
     }
     return page;
@@ -48,5 +47,12 @@ public class WikiPageUtil {
     if (rest.size() == 0)
       return current;
     return getOrMakePage(current, rest);
+  }
+
+  public static String makePageHtml(ReadOnlyPageData pageData) {
+    StringBuffer buffer = new StringBuffer();
+    buffer.append(getHeaderPageHtml(pageData.getWikiPage()));
+    buffer.append(pageData.getHtml());
+    return buffer.toString();
   }
 }

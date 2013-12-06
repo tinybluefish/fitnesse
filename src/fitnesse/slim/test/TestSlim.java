@@ -29,10 +29,6 @@ public class TestSlim implements TestSlimInterface {
 
   }
 
-  public void runForever() {
-    while (true) {}
-  }
-
   public TestSlim(int constructorArg) {
     this.constructorArg = constructorArg;
   }
@@ -259,12 +255,10 @@ public class TestSlim implements TestSlimInterface {
   }
 
   public void setMap(Map<String, String> map) {
-    System.out.println("set map = " + map);
     this.map = map;
   }
 
   public Map<String, String> getMap() {
-    System.out.println("got map = " + map);
     return  map;
   }
   

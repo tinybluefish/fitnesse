@@ -2,6 +2,7 @@ package fitnesse.wiki.fs;
 
 import fitnesse.wikitext.parser.WikiWordPath;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,17 +20,13 @@ public class ExternalSuitePage extends BaseWikiPage {
   private static final long serialVersionUID = 1L;
   public static final String HTML = ".html";
 
-  private String path;
+  private File path;
   private FileSystem fileSystem;
 
-  public ExternalSuitePage(String path, String name, WikiPage parent, FileSystem fileSystem) {
-    super(name, parent, null);
+  public ExternalSuitePage(File path, String name, BaseWikiPage parent, FileSystem fileSystem) {
+    super(name, parent);
     this.path = path;
     this.fileSystem = fileSystem;
-  }
-
-  public String getFileSystemPath() {
-    return path;
   }
 
   @Override
@@ -88,23 +85,23 @@ public class ExternalSuitePage extends BaseWikiPage {
 
   private List<WikiPage> findChildren() {
     List<WikiPage> children = new ArrayList<WikiPage>();
-    for (String child : fileSystem.list(getFileSystemPath())) {
-      String childPath = getFileSystemPath() + "/" + child;
+    for (String child : fileSystem.list(path)) {
+      File childPath = new File(path, child);
       if (child.endsWith(HTML)) {
         children.add(new ExternalTestPage(childPath,
-                WikiWordPath.makeWikiWord(child.replace(HTML, "")), parent, fileSystem));
+                WikiWordPath.makeWikiWord(child.replace(HTML, "")), this, fileSystem));
       } else if (hasHtmlChild(childPath)) {
         children.add(new ExternalSuitePage(childPath,
-                WikiWordPath.makeWikiWord(child), parent, fileSystem));
+                WikiWordPath.makeWikiWord(child), this, fileSystem));
       }
     }
     return children;
   }
 
-  private Boolean hasHtmlChild(String path) {
-    if (path.endsWith(HTML)) return true;
+  private Boolean hasHtmlChild(File path) {
+    if (path.getName().endsWith(HTML)) return true;
     for (String child : fileSystem.list(path)) {
-      if (hasHtmlChild(path + "/" + child)) return true;
+      if (hasHtmlChild(new File(path, child))) return true;
     }
     return false;
   }

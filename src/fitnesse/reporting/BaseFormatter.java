@@ -13,8 +13,11 @@ import fitnesse.wiki.WikiPage;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class BaseFormatter implements TestSystemListener<WikiTestPage>, Closeable {
+  protected final Logger LOG = Logger.getLogger(getClass().getName());
 
   protected WikiPage page = null;
   protected FitNesseContext context;
@@ -39,10 +42,13 @@ public abstract class BaseFormatter implements TestSystemListener<WikiTestPage>,
   }
 
   public void errorOccurred(Throwable cause) {
+    if (cause != null) {
+      LOG.log(Level.INFO, "error registered in test system", cause);
+    }
     try {
       close();
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (IOException e) {
+      LOG.log(Level.WARNING, "Unable to close formatter after error occurred", e);
     }
   }
 

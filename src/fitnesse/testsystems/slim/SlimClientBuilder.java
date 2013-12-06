@@ -2,8 +2,9 @@ package fitnesse.testsystems.slim;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.SocketException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import fitnesse.socketservice.SocketFactory;
 
@@ -15,6 +16,7 @@ import fitnesse.testsystems.Descriptor;
 import fitnesse.testsystems.MockCommandRunner;
 
 public class SlimClientBuilder extends ClientBuilder<SlimCommandRunningClient> {
+  private static final Logger LOG = Logger.getLogger(SlimClientBuilder.class.getName());
 
   public static final String SLIM_PORT = "SLIM_PORT";
   public static final String SLIM_HOST = "SLIM_HOST";
@@ -28,10 +30,6 @@ public class SlimClientBuilder extends ClientBuilder<SlimCommandRunningClient> {
   public SlimClientBuilder(Descriptor descriptor) {
     super(descriptor);
     slimPort = getNextSlimPort();
-  }
-
-  public static String defaultTestRunner() {
-    return "fitnesse.slim.SlimService";
   }
 
   @Override
@@ -59,30 +57,6 @@ public class SlimClientBuilder extends ClientBuilder<SlimCommandRunningClient> {
     return String.format("%s %d", slimFlags, slimSocket);
   }
 
-  //For testing only.  Makes responder faster.
-  void createSlimService(String args) throws IOException {
-    while (!tryCreateSlimService(args))
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-  }
-
-  // For testing only
-  private boolean tryCreateSlimService(String args) throws IOException {
-    try {
-      SlimService.parseCommandLine(args.trim().split(" "));
-      SlimService.startWithFactoryAsync(new JavaSlimFactory());
-      return true;
-    } catch (IOException e) {
-      throw e;
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
-    }
-  }
-
   public int getSlimPort() {
     return slimPort;
   }
@@ -107,7 +81,7 @@ public class SlimClientBuilder extends ClientBuilder<SlimCommandRunningClient> {
       return findFreePort();
     }
 
-    synchronized (slimPortOffset) {
+    synchronized (SlimClientBuilder.class) {
       int offset = slimPortOffset.get();
       offset = (offset + 1) % poolSize;
       slimPortOffset.set(offset);
