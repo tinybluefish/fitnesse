@@ -5,6 +5,8 @@
 <script src="${contextRoot}files/fitnesse/ckeditor/ckeditor.js" type="text/javascript"></script>
 
 
+
+
 <form id="contentForm" method="post" action="$resource" name="f">
 #if($!editTime)
  <input type="hidden" name="editTime" value="$editTime"/>
@@ -55,33 +57,45 @@
 
 <script>
 window.onload = function() {
-
   document.getElementById('contentForm').onsubmit = function() {
     var editor = CKEDITOR.instances.pageContent;
     var txt = editor.getData();
     txt = "!-" + txt + "-!";
     editor.setData(txt);
   };
-  
 };
 </script>
 
  <fieldset id="editor">
   <textarea id="pageContent" name="pageContent" wrap="on">$pageContent</textarea>
+  <!-- And *this* bit of hackery strips those headers off when the page comes back in. We need
+       to take 11 chars because fitnesse treats the text like paras, wrapping appropriately. -->
   <script>
-    CKEDITOR.replace('pageContent',
+    
+    if (document.f.pageContent.innerHTML.search('!-') < 10)
     {
-      on :
+alert('Using fancy editor!');
+      var contentEditor = CKEDITOR.replace('pageContent',
       {
-        instanceReady : function (ev)
+        on :
         {
-          var content = CKEDITOR.instances.pageContent.getData();
-          content = content.slice(11, -11);
-          CKEDITOR.instances.pageContent.setData(content);
+          instanceReady : function (ev)
+          {
+            var content = CKEDITOR.instances.pageContent.getData();          
+          
+            content = content.slice(11, -11);
+            CKEDITOR.instances.pageContent.setData(content);
+          }
         }
-      }
-    } );
+      } );
+    }
+else
+{
+alert('Using regular editor');
+}
+// Not working quite right...    contentEditor.config.height = (document.body.clientHeight + 100) + 'px'; 
   </script>
+
  </fieldset>
 
  <fieldset id="save_buttons">
@@ -147,5 +161,6 @@ $(function () {
 
 });
 </script>
+
 
 
