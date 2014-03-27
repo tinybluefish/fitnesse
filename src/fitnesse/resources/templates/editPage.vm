@@ -2,6 +2,8 @@
 <script src="${contextRoot}files/fitnesse/javascript/SpreadsheetTranslator.js" type="text/javascript"></script>
 <script src="${contextRoot}files/fitnesse/javascript/WikiFormatter.js" type="text/javascript"></script>
 <script src="${contextRoot}files/fitnesse/javascript/TemplateInserter.js" type="text/javascript"></script>
+<script src="${contextRoot}files/fitnesse/ckeditor/ckeditor.js" type="text/javascript"></script>
+
 
 <form id="contentForm" method="post" action="$resource" name="f">
 #if($!editTime)
@@ -145,4 +147,5 @@ $(function () {
 
 });
 </script>
+
 
